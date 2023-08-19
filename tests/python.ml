@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 open Arrow_c_api
 
 type t =
@@ -61,7 +61,7 @@ let%expect_test _ =
     List.gen_with_length length gen
   in
   Quickcheck.iter ~trials:10 ~seed:(`Deterministic "fortytwo") gen ~f:(fun ts ->
-      let filename = Caml.Filename.temp_file "test" ".parquet" in
+      let filename = Stdlib.Filename.temp_file "test" ".parquet" in
       Exn.protect
         ~f:(fun () ->
           let hd = List.hd_exn ts in
@@ -108,7 +108,7 @@ let%expect_test _ =
                   (sexp_of_t t |> Sexp.to_string_mach)
                   (sexp_of_t t' |> Sexp.to_string_mach)));
           Stdio.printf "\n")
-        ~finally:(fun () -> Caml.Sys.remove filename));
+        ~finally:(fun () -> Stdlib.Sys.remove filename));
   [%expect
     {|
     z: foo-55932
@@ -222,12 +222,12 @@ let%expect_test _ =
     >> 3398 3300001757.0 |}]
 
 let sexp_of_time_ns time_ns =
-  Time_ns.to_string_iso8601_basic time_ns ~zone:Time.Zone.utc |> sexp_of_string
+  Time_ns.to_string_iso8601_basic time_ns ~zone:Time_float.Zone.utc |> sexp_of_string
 
 let sexp_of_ofday_ns ofday = Time_ns.Ofday.to_string ofday |> sexp_of_string
 
 let%expect_test _ =
-  let filename = Caml.Filename.temp_file "test" ".parquet" in
+  let filename = Stdlib.Filename.temp_file "test" ".parquet" in
   Exn.protect
     ~f:(fun () ->
       let col_v1 = Writer.float [| 1.; 2.; 3.; 3.14159265358979; 5. |] ~name:"x" in
@@ -243,7 +243,7 @@ let%expect_test _ =
           ~name:"col_date"
       in
       let col_time =
-        let t = Time_ns.of_string "2021-06-05 09:36:00.123+01:00" in
+        let t = Time_ns.of_string_with_utc_offset "2021-06-05 09:36:00.123+01:00" in
         Writer.time_ns [| t; t; t; t; t |] ~name:"col_time"
       in
       let col_ofday =
@@ -269,7 +269,7 @@ let%expect_test _ =
         ([%sexp_of: time_ns array] col_time |> Sexp.to_string_mach)
         ([%sexp_of: ofday_ns array] col_ofday |> Sexp.to_string_mach);
       ())
-    ~finally:(fun () -> Caml.Sys.remove filename);
+    ~finally:(fun () -> Stdlib.Sys.remove filename);
   [%expect
     {|
     5

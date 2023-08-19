@@ -1,15 +1,15 @@
 open Base
 open Arrow_c_api
 
-type time = Core_kernel.Time_ns.t [@@deriving compare]
+type time = Core.Time_ns.t [@@deriving compare]
 
-let sexp_of_time time = Core_kernel.Time_ns.to_string time |> sexp_of_string
+let sexp_of_time time = Core.Time_ns.to_string_utc time |> sexp_of_string
 
 type t =
   { x : int
   ; y : float
   ; z : string
-  ; truc : Core_kernel.Date.t
+  ; truc : Core.Date.t
   ; time : time
   ; y_opt : float option
   ; z_opt : string option
@@ -31,10 +31,10 @@ let `read read, `write write =
        ~cnt:i64_opt)
 
 let generate_ts ~cnt =
-  let base_time = Core_kernel.Time_ns.now () in
-  let base_date = Core_kernel.Date.of_string "2020-01-16" in
-  let date = Core_kernel.Date.add_days base_date in
-  let time s = Core_kernel.Time_ns.(add base_time (Span.of_sec s)) in
+  let base_time = Core.Time_ns.now () in
+  let base_date = Core.Date.of_string "2020-01-16" in
+  let date = Core.Date.add_days base_date in
+  let time s = Core.Time_ns.(add base_time (Span.of_sec s)) in
   let ts ~cnt =
     [ { x = 42
       ; y = 3.14159265358979
@@ -77,7 +77,7 @@ let generate_ts ~cnt =
   List.init cnt ~f:(fun cnt -> ts ~cnt) |> List.concat
 
 let run ?chunk_size ?compression cnt =
-  let filename = Caml.Filename.temp_file "test" ".parquet" in
+  let filename = Stdlib.Filename.temp_file "test" ".parquet" in
   Exn.protect
     ~f:(fun () ->
       let ts = generate_ts ~cnt in
@@ -92,7 +92,7 @@ let run ?chunk_size ?compression cnt =
               "in:  %s\nout: %s\n\n%!"
               (sexp_of_t t |> Sexp.to_string_mach)
               (sexp_of_t t' |> Sexp.to_string_mach))))
-    ~finally:(fun () -> Caml.Sys.remove filename)
+    ~finally:(fun () -> Stdlib.Sys.remove filename)
 
 let%expect_test _ =
   run 0;
