@@ -1,14 +1,14 @@
-open! Base
+
 
 let unknown_suffix filename =
-  Printf.failwithf
+  Core.Printf.failwithf
     "cannot infer the file format from suffix %s (supported suffixes are \
      csv/json/feather/parquet)"
     filename
     ()
 
 let schema filename =
-  match String.rsplit2 filename ~on:'.' with
+  match Core.String.rsplit2 filename ~on:'.' with
   | Some (_, "csv") -> Table.read_csv filename |> Table.schema
   | Some (_, "json") -> Table.read_json filename |> Table.schema
   | Some (_, "feather") -> Wrapper.Feather_reader.schema filename

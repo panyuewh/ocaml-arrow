@@ -1,4 +1,4 @@
-open! Base
+
 
 type ba = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
@@ -30,12 +30,12 @@ let num_true t =
   let res = ref 0 in
   let length = t.length in
   for byte_index = 0 to (length / 8) - 1 do
-    res := !res + Int.popcount t.data.{byte_index}
+    res := !res + Core.Int.popcount t.data.{byte_index}
   done;
   let last_byte_index = length / 8 in
   let last_bits = length % 8 in
   if last_bits > 0
-  then res := !res + Int.popcount (t.data.{last_byte_index} land ((1 lsl last_bits) - 1));
+  then res := !res + Core.Int.popcount (t.data.{last_byte_index} land ((1 lsl last_bits) - 1));
   !res
 
 let num_false t = length t - num_true t

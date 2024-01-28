@@ -1,4 +1,4 @@
-open Base
+
 include Wrapper.Table
 
 type _ col_type =

@@ -1,4 +1,4 @@
-open! Base
+
 
 module type Intf = sig
   type t
@@ -20,8 +20,8 @@ module Double = struct
     | None -> append_null t ~n:1
     | Some v -> append t v
 
-  let length t = length t |> Int64.to_int_exn
-  let null_count t = null_count t |> Int64.to_int_exn
+  let length t = length t |> Core.Int64.to_int_exn
+  let null_count t = null_count t |> Core.Int64.to_int_exn
 end
 
 module String = struct
@@ -32,8 +32,8 @@ module String = struct
     | None -> append_null t ~n:1
     | Some v -> append t v
 
-  let length t = length t |> Int64.to_int_exn
-  let null_count t = null_count t |> Int64.to_int_exn
+  let length t = length t |> Core.Int64.to_int_exn
+  let null_count t = null_count t |> Core.Int64.to_int_exn
 end
 
 module NativeInt = struct
@@ -46,8 +46,8 @@ module NativeInt = struct
     | None -> append_null t ~n:1
     | Some v -> append t v
 
-  let length t = length t |> Int64.to_int_exn
-  let null_count t = null_count t |> Int64.to_int_exn
+  let length t = length t |> Core.Int64.to_int_exn
+  let null_count t = null_count t |> Core.Int64.to_int_exn
 end
 
 module Int32 = struct
@@ -58,8 +58,8 @@ module Int32 = struct
     | None -> append_null t ~n:1
     | Some v -> append t v
 
-  let length t = length t |> Int64.to_int_exn
-  let null_count t = null_count t |> Int64.to_int_exn
+  let length t = length t |> Core.Int64.to_int_exn
+  let null_count t = null_count t |> Core.Int64.to_int_exn
 end
 
 module Int64 = struct
@@ -70,8 +70,8 @@ module Int64 = struct
     | None -> append_null t ~n:1
     | Some v -> append t v
 
-  let length t = length t |> Int64.to_int_exn
-  let null_count t = null_count t |> Int64.to_int_exn
+  let length t = length t |> Core.Int64.to_int_exn
+  let null_count t = null_count t |> Core.Int64.to_int_exn
 end
 
 let make_table = Wrapper.Builder.make_table
@@ -89,34 +89,34 @@ module C = struct
 
   type 'row packed_cols = 'row packed_col list
 
-  let get_name ?name field = Option.value name ~default:(Field.name field)
+  let get_name ?name field = Option.value name ~default:(Core.Field.name field)
 
   let c (type a) ?name (col_type : a Table.col_type) field =
     let name = get_name ?name field in
-    [ P { name; get = Field.get field; col_type } ]
+    [ P { name; get = Core.Field.get field; col_type } ]
 
   let c_opt (type a) ?name (col_type : a Table.col_type) field =
     let name = get_name ?name field in
-    [ O { name; get = Field.get field; col_type } ]
+    [ O { name; get = Core.Field.get field; col_type } ]
 
   let c_map (type a) ?name (col_type : a Table.col_type) field ~f =
     let name = get_name ?name field in
-    let get row = Field.get field row |> f in
+    let get row = Core.Field.get field row |> f in
     [ P { name; get; col_type } ]
 
   let c_map_opt (type a) ?name (col_type : a Table.col_type) field ~f =
     let name = get_name ?name field in
-    let get row = Field.get field row |> f in
+    let get row = Core.Field.get field row |> f in
     [ O { name; get; col_type } ]
 
   let get ~suffixes field idx row =
     let n_elems = List.length suffixes in
-    let row = Field.get field row in
+    let row = Core.Field.get field row in
     if Array.length row <> n_elems
     then
-      Printf.failwithf
+      Core.Printf.failwithf
         "unexpected number of elements for %s: %d <> %d"
-        (Field.name field)
+        (Core.Field.name field)
         (Array.length row)
         n_elems
         ();
@@ -142,17 +142,17 @@ module C = struct
     let rename =
       match rename with
       | `keep -> Fn.id
-      | `prefix -> fun name -> Field.name field ^ "_" ^ name
+      | `prefix -> fun name -> Core.Field.name field ^ "_" ^ name
       | `fn fn -> fn
     in
     List.map packed_cols ~f:(function
         | P { name; get; col_type } ->
           let name = rename name in
-          let get row = Field.get field row |> get in
+          let get row = Core.Field.get field row |> get in
           P { name; get; col_type }
         | O { name; get; col_type } ->
           let name = rename name in
-          let get row = Field.get field row |> get in
+          let get row = Core.Field.get field row |> get in
           O { name; get; col_type })
 
   let array_to_table packed_cols rows =

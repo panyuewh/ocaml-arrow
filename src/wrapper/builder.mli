@@ -1,4 +1,4 @@
-open! Core
+
 
 module type Intf = sig
   type t
@@ -50,49 +50,49 @@ module C : sig
   val c
     : ?name:string
     -> 'a Table.col_type
-    -> ('b, 'c, 'a) Field.t_with_perm
+    -> ('b, 'c, 'a) Core.Field.t_with_perm
     -> 'c packed_cols
 
   val c_opt
     : ?name:string
     -> 'a Table.col_type
-    -> ('b, 'c, 'a option) Field.t_with_perm
+    -> ('b, 'c, 'a option) Core.Field.t_with_perm
     -> 'c packed_cols
 
   val c_array
     :  ?name:string
     -> 'a Table.col_type
-    -> ('b, 'c, 'a array) Field.t_with_perm
+    -> ('b, 'c, 'a array) Core.Field.t_with_perm
     -> suffixes:string list
     -> 'c packed_cols
 
   val c_array_opt
     :  ?name:string
     -> 'a Table.col_type
-    -> ('b, 'c, 'a option array) Field.t_with_perm
+    -> ('b, 'c, 'a option array) Core.Field.t_with_perm
     -> suffixes:string list
     -> 'c packed_cols
 
   val c_map
     :  ?name:string
     -> 'a Table.col_type
-    -> ('b, 'c, 'd) Field.t_with_perm
+    -> ('b, 'c, 'd) Core.Field.t_with_perm
     -> f:('d -> 'a)
     -> 'c packed_cols
 
   val c_map_opt
     :  ?name:string
     -> 'a Table.col_type
-    -> ('b, 'c, 'd) Field.t_with_perm
+    -> ('b, 'c, 'd) Core.Field.t_with_perm
     -> f:('d -> 'a option)
     -> 'c packed_cols
 
-  val c_ignore : ('b, 'c, 'a) Field.t_with_perm -> 'c packed_cols
+  val c_ignore : ('b, 'c, 'a) Core.Field.t_with_perm -> 'c packed_cols
 
   val c_flatten
     :  ?rename:[ `fn of string -> string | `keep | `prefix ]
     -> 'a packed_cols
-    -> ('b, 'c, 'a) Field.t_with_perm
+    -> ('b, 'c, 'a) Core.Field.t_with_perm
     -> 'c packed_cols
 
   val array_to_table : 'a packed_cols -> 'a array -> Table.t

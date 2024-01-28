@@ -1,4 +1,4 @@
-open Base
+
 module P = Wrapper.Parquet_reader
 
 type t = P.t
@@ -9,7 +9,7 @@ let close = P.close
 
 let iter_batches ?use_threads ?column_idxs ?mmap ?buffer_size ?batch_size filename ~f =
   let t = P.create ?use_threads ?column_idxs ?mmap ?buffer_size ?batch_size filename in
-  Exn.protect
+  Core.Exn.protect
     ~finally:(fun () -> close t)
     ~f:(fun () ->
       let rec loop_read () =
@@ -32,7 +32,7 @@ let fold_batches
     ~f
   =
   let t = P.create ?use_threads ?column_idxs ?mmap ?buffer_size ?batch_size filename in
-  Exn.protect
+  Core.Exn.protect
     ~finally:(fun () -> close t)
     ~f:(fun () ->
       let rec loop_read acc =

@@ -13,17 +13,17 @@
        let () = write ts "/path/to/another.parquet"
      |}
 *)
-open! Base
+
 
 module Reader : sig
   type t = string list
   type 'v col_ = t -> (Wrapper.Table.t * int -> 'v) * t
-  type ('a, 'b, 'c, 'v) col = ('a, 'b, 'c) Field.t_with_perm -> 'v col_
+  type ('a, 'b, 'c, 'v) col = ('a, 'b, 'c) Core.Field.t_with_perm -> 'v col_
 
   val i64 : ('a, 'b, 'c, int) col
   val f64 : ('a, 'b, 'c, float) col
   val str : ('a, 'b, 'c, string) col
-  val stringable : (module Stringable.S with type t = 'd) -> ('a, 'b, 'c, 'd) col
+  val stringable : (module Core.Stringable.S with type t = 'd) -> ('a, 'b, 'c, 'd) col
   val date : ('a, 'b, 'c, Core.Date.t) col
   val time_ns : ('a, 'b, 'c, Core.Time_ns.t) col
   val bool : ('a, 'b, 'c, bool) col
@@ -33,7 +33,7 @@ module Reader : sig
   val bool_opt : ('a, 'b, 'c, bool option) col
 
   val stringable_opt
-    :  (module Stringable.S with type t = 'd)
+    :  (module Core.Stringable.S with type t = 'd)
     -> ('a, 'b, 'c, 'd option) col
 
   val date_opt : ('a, 'b, 'c, Core.Date.t option) col
@@ -44,7 +44,7 @@ end
 
 module Writer : sig
   type 'a state = int * (unit -> Wrapper.Writer.col) list * (int -> 'a -> unit)
-  type ('a, 'b, 'c) col = 'a state -> ('b, 'a, 'c) Field.t_with_perm -> 'a state
+  type ('a, 'b, 'c) col = 'a state -> ('b, 'a, 'c) Core.Field.t_with_perm -> 'a state
 
   val i64 : ('a, 'b, int) col
   val f64 : ('a, 'b, float) col
@@ -52,9 +52,9 @@ module Writer : sig
   val bool : ('a, 'b, bool) col
 
   val stringable
-    :  (module Stringable.S with type t = 'd)
+    :  (module Core.Stringable.S with type t = 'd)
     -> 'a state
-    -> ('c, 'a, 'd) Field.t_with_perm
+    -> ('c, 'a, 'd) Core.Field.t_with_perm
     -> 'a state
 
   val date : ('a, 'b, Core.Date.t) col
@@ -80,14 +80,14 @@ type 'a t =
   | Write of 'a Writer.state
 
 type ('a, 'b, 'c) col =
-  ('a, 'b, 'c) Field.t_with_perm -> 'b t -> (Wrapper.Table.t * int -> 'c) * 'b t
+  ('a, 'b, 'c) Core.Field.t_with_perm -> 'b t -> (Wrapper.Table.t * int -> 'c) * 'b t
 
 val i64 : ('a, 'b, int) col
 val f64 : ('a, 'b, float) col
 val str : ('a, 'b, string) col
 val bool : ('a, 'b, bool) col
 val bool_opt : ('a, 'b, bool option) col
-val stringable : (module Stringable.S with type t = 'd) -> ('a, 'b, 'd) col
+val stringable : (module Core.Stringable.S with type t = 'd) -> ('a, 'b, 'd) col
 val date : ('a, 'b, Core.Date.t) col
 val time_ns : ('a, 'b, Core.Time_ns.t) col
 val i64_opt : ('a, 'b, int option) col

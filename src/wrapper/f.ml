@@ -1,10 +1,10 @@
-open Base
+
 
 module Reader = struct
   type t = string list (* the column names *)
 
   type 'v col_ = t -> (Wrapper.Table.t * int -> 'v) * t
-  type ('a, 'b, 'c, 'v) col = ('a, 'b, 'c) Field.t_with_perm -> 'v col_
+  type ('a, 'b, 'c, 'v) col = ('a, 'b, 'c) Core.Field.t_with_perm -> 'v col_
 
   let with_memo ~get_col field_name t =
     let cache_get = ref None in
@@ -22,72 +22,72 @@ module Reader = struct
     get, field_name :: t
 
   let i64 field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let ba = Wrapper.Column.read_i64_ba table ~column in
-        fun i -> Int64.to_int_exn ba.{i})
+        fun i -> Core.Int64.to_int_exn ba.{i})
 
   let date field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let a = Wrapper.Column.read_date table ~column in
         fun i -> a.(i))
 
   let time_ns field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let a = Wrapper.Column.read_time_ns table ~column in
         fun i -> a.(i))
 
   let f64 field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let ba = Wrapper.Column.read_f64_ba table ~column in
         fun i -> ba.{i})
 
   let bool field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let bs = Wrapper.Column.read_bitset table ~column in
         fun i -> Valid.get bs i)
 
   let str field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let a = Wrapper.Column.read_utf8 table ~column in
         fun i -> a.(i))
 
-  let stringable (type a) (module S : Stringable.S with type t = a) field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+  let stringable (type a) (module S : Core.Stringable.S with type t = a) field =
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let a = Wrapper.Column.read_utf8 table ~column in
         fun i -> a.(i) |> S.of_string)
 
   let i64_opt field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let ba, valid = Wrapper.Column.read_i64_ba_opt table ~column in
-        fun i -> if Valid.get valid i then Some (Int64.to_int_exn ba.{i}) else None)
+        fun i -> if Valid.get valid i then Some (Core.Int64.to_int_exn ba.{i}) else None)
 
   let date_opt field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let a = Wrapper.Column.read_date_opt table ~column in
         fun i -> a.(i))
 
   let time_ns_opt field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let a = Wrapper.Column.read_time_ns_opt table ~column in
         fun i -> a.(i))
 
   let f64_opt field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let ba, valid = Wrapper.Column.read_f64_ba_opt table ~column in
         fun i -> if Valid.get valid i then Some ba.{i} else None)
 
   let str_opt field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let a = Wrapper.Column.read_utf8_opt table ~column in
         fun i -> a.(i))
 
   let bool_opt field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let bs, valid = Wrapper.Column.read_bitset_opt table ~column in
         fun i -> if Valid.get valid i then Some (Valid.get bs i) else None)
 
-  let stringable_opt (type a) (module S : Stringable.S with type t = a) field =
-    with_memo (Field.name field) ~get_col:(fun table ~column ->
+  let stringable_opt (type a) (module S : Core.Stringable.S with type t = a) field =
+    with_memo (Core.Field.name field) ~get_col:(fun table ~column ->
         let array = Wrapper.Column.read_utf8_opt table ~column in
         fun i -> Option.map array.(i) ~f:S.of_string)
 
@@ -105,13 +105,13 @@ module Writer = struct
   module Writer = Wrapper.Writer
 
   type 'a state = int * (unit -> Wrapper.Writer.col) list * (int -> 'a -> unit)
-  type ('a, 'b, 'c) col = 'a state -> ('b, 'a, 'c) Field.t_with_perm -> 'a state
+  type ('a, 'b, 'c) col = 'a state -> ('b, 'a, 'c) Core.Field.t_with_perm -> 'a state
 
   let i64 (length, acc_col, acc_set) field =
     let ba = Bigarray.Array1.create Int64 C_layout length in
-    let col () = Writer.int64_ba ba ~name:(Field.name field) in
+    let col () = Writer.int64_ba ba ~name:(Core.Field.name field) in
     let set idx t =
-      ba.{idx} <- Field.get field t |> Int64.of_int;
+      ba.{idx} <- Core.Field.get field t |> Int64.of_int;
       acc_set idx t
     in
     length, col :: acc_col, set
@@ -119,9 +119,9 @@ module Writer = struct
   let i64_opt (length, acc_col, acc_set) field =
     let ba = Bigarray.Array1.create Int64 C_layout length in
     let valid = Valid.create_all_valid length in
-    let col () = Writer.int64_ba_opt ba valid ~name:(Field.name field) in
+    let col () = Writer.int64_ba_opt ba valid ~name:(Core.Field.name field) in
     let set idx t =
-      (match Field.get field t with
+      (match Core.Field.get field t with
       | Some v -> ba.{idx} <- Int64.of_int v
       | None -> Valid.set valid idx false);
       acc_set idx t
@@ -130,18 +130,18 @@ module Writer = struct
 
   let f64 (length, acc_col, acc_set) field =
     let ba = Bigarray.Array1.create Float64 C_layout length in
-    let col () = Writer.float64_ba ba ~name:(Field.name field) in
+    let col () = Writer.float64_ba ba ~name:(Core.Field.name field) in
     let set idx t =
-      ba.{idx} <- Field.get field t;
+      ba.{idx} <- Core.Field.get field t;
       acc_set idx t
     in
     length, col :: acc_col, set
 
   let bool (length, acc_col, acc_set) field =
     let bs = Valid.create_all_valid length in
-    let col () = Writer.bitset bs ~name:(Field.name field) in
+    let col () = Writer.bitset bs ~name:(Core.Field.name field) in
     let set idx t =
-      Valid.set bs idx (Field.get field t);
+      Valid.set bs idx (Core.Field.get field t);
       acc_set idx t
     in
     length, col :: acc_col, set
@@ -149,9 +149,9 @@ module Writer = struct
   let bool_opt (length, acc_col, acc_set) field =
     let bs = Valid.create_all_valid length in
     let valid = Valid.create_all_valid length in
-    let col () = Writer.bitset_opt bs ~valid ~name:(Field.name field) in
+    let col () = Writer.bitset_opt bs ~valid ~name:(Core.Field.name field) in
     let set idx t =
-      (match Field.get field t with
+      (match Core.Field.get field t with
       | Some v -> Valid.set bs idx v
       | None -> Valid.set valid idx false);
       acc_set idx t
@@ -161,9 +161,9 @@ module Writer = struct
   let f64_opt (length, acc_col, acc_set) field =
     let ba = Bigarray.Array1.create Float64 C_layout length in
     let valid = Valid.create_all_valid length in
-    let col () = Writer.float64_ba_opt ba valid ~name:(Field.name field) in
+    let col () = Writer.float64_ba_opt ba valid ~name:(Core.Field.name field) in
     let set idx t =
-      (match Field.get field t with
+      (match Core.Field.get field t with
       | Some v -> ba.{idx} <- v
       | None -> Valid.set valid idx false);
       acc_set idx t
@@ -172,18 +172,18 @@ module Writer = struct
 
   let str (length, acc_col, acc_set) field =
     let strs = Array.create ~len:length "" in
-    let col () = Writer.utf8 strs ~name:(Field.name field) in
+    let col () = Writer.utf8 strs ~name:(Core.Field.name field) in
     let set idx t =
-      strs.(idx) <- Field.get field t;
+      strs.(idx) <- Core.Field.get field t;
       acc_set idx t
     in
     length, col :: acc_col, set
 
   let str_opt (length, acc_col, acc_set) field =
     let strs = Array.create ~len:length None in
-    let col () = Writer.utf8_opt strs ~name:(Field.name field) in
+    let col () = Writer.utf8_opt strs ~name:(Core.Field.name field) in
     let set idx t =
-      strs.(idx) <- Field.get field t;
+      strs.(idx) <- Core.Field.get field t;
       acc_set idx t
     in
     length, col :: acc_col, set
@@ -195,45 +195,45 @@ module Writer = struct
       field
     =
     let strs = Array.create ~len:length "" in
-    let col () = Writer.utf8 strs ~name:(Field.name field) in
+    let col () = Writer.utf8 strs ~name:(Core.Field.name field) in
     let set idx t =
-      strs.(idx) <- Field.get field t |> S.to_string;
+      strs.(idx) <- Core.Field.get field t |> S.to_string;
       acc_set idx t
     in
     length, col :: acc_col, set
 
   let date (length, acc_col, acc_set) field =
     let dates = Array.create ~len:length Core.Date.unix_epoch in
-    let col () = Writer.date dates ~name:(Field.name field) in
+    let col () = Writer.date dates ~name:(Core.Field.name field) in
     let set idx t =
-      dates.(idx) <- Field.get field t;
+      dates.(idx) <- Core.Field.get field t;
       acc_set idx t
     in
     length, col :: acc_col, set
 
   let date_opt (length, acc_col, acc_set) field =
     let dates = Array.create ~len:length None in
-    let col () = Writer.date_opt dates ~name:(Field.name field) in
+    let col () = Writer.date_opt dates ~name:(Core.Field.name field) in
     let set idx t =
-      dates.(idx) <- Field.get field t;
+      dates.(idx) <- Core.Field.get field t;
       acc_set idx t
     in
     length, col :: acc_col, set
 
   let time_ns (length, acc_col, acc_set) field =
     let times = Array.create ~len:length Core.Time_ns.epoch in
-    let col () = Writer.time_ns times ~name:(Field.name field) in
+    let col () = Writer.time_ns times ~name:(Core.Field.name field) in
     let set idx t =
-      times.(idx) <- Field.get field t;
+      times.(idx) <- Core.Field.get field t;
       acc_set idx t
     in
     length, col :: acc_col, set
 
   let time_ns_opt (length, acc_col, acc_set) field =
     let times = Array.create ~len:length None in
-    let col () = Writer.time_ns_opt times ~name:(Field.name field) in
+    let col () = Writer.time_ns_opt times ~name:(Core.Field.name field) in
     let set idx t =
-      times.(idx) <- Field.get field t;
+      times.(idx) <- Core.Field.get field t;
       acc_set idx t
     in
     length, col :: acc_col, set
@@ -253,7 +253,7 @@ type 'a t =
   | Write of 'a Writer.state
 
 type ('a, 'b, 'c) col =
-  ('a, 'b, 'c) Field.t_with_perm -> 'b t -> (Wrapper.Table.t * int -> 'c) * 'b t
+  ('a, 'b, 'c) Core.Field.t_with_perm -> 'b t -> (Wrapper.Table.t * int -> 'c) * 'b t
 
 let i64 field t =
   match t with
